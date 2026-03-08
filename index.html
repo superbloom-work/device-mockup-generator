@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Device Mockup Generator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  .app {
+    display: flex;
+    height: 100vh;
+  }
+
+  /* ─── Sidebar ─── */
+  .sidebar {
+    width: 320px;
+    background: #222;
+    border-right: 1px solid #333;
+    padding: 24px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .sidebar h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: #fff;
+  }
+
+  .section {
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+
+  /* Drop zones */
+  .drop-zone {
+    border: 2px dashed #444;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+    position: relative;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: #0d9488;
+    background: rgba(13, 148, 136, 0.05);
+  }
+
+  .drop-zone.has-image {
+    border-style: solid;
+    border-color: #0d9488;
+  }
+
+  .drop-zone .label {
+    font-size: 13px;
+    color: #999;
+  }
+
+  .drop-zone .preview {
+    max-width: 100%;
+    max-height: 120px;
+    border-radius: 6px;
+  }
+
+  .drop-zone input[type="file"] {
+    display: none;
+  }
+
+  /* Controls */
+  .control-group {
+    margin-bottom: 16px;
+  }
+
+  .control-group label {
+    display: block;
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 6px;
+  }
+
+  .control-group input[type="range"] {
+    width: 100%;
+    accent-color: #0d9488;
+  }
+
+  .control-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .control-row .value {
+    font-size: 12px;
+    color: #666;
+    min-width: 40px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .control-row input[type="range"] {
+    flex: 1;
+  }
+
+  select, input[type="color"] {
+    width: 100%;
+    padding: 8px 12px;
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  input[type="color"] {
+    height: 40px;
+    padding: 4px;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: #0d9488;
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: #0f766e;
+  }
+
+  .btn-secondary {
+    background: #333;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    margin-top: 8px;
+  }
+
+  .btn-secondary:hover {
+    background: #3a3a3a;
+  }
+
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .preset-btn {
+    padding: 10px 8px;
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #ccc;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .preset-btn:hover {
+    background: #3a3a3a;
+    border-color: #0d9488;
+    color: #fff;
+  }
+
+  .preset-btn.active {
+    border-color: #0d9488;
+    background: rgba(13, 148, 136, 0.15);
+    color: #0d9488;
+  }
+
+  /* ─── Canvas area ─── */
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    overflow: auto;
+  }
+
+  .canvas-wrapper {
+    position: relative;
+    background: #000;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+  }
+
+  /* Size info */
+  .size-info {
+    font-size: 11px;
+    color: #555;
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* Checkbox style */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .checkbox-row input[type="checkbox"] {
+    accent-color: #0d9488;
+  }
+
+  .checkbox-row label {
+    font-size: 12px;
+    color: #aaa;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <h1>Device Mockup Generator</h1>
+
+    <!-- Screenshots -->
+    <div class="section">
+      <div class="section-title">Screenshots</div>
+      <div class="drop-zone" id="dropZone1" onclick="document.getElementById('file1').click()">
+        <span class="label">Device 1: Drop or Click</span>
+        <input type="file" id="file1" accept="image/*">
+      </div>
+      <div class="drop-zone" id="dropZone2" onclick="document.getElementById('file2').click()">
+        <span class="label">Device 2: Drop or Click</span>
+        <input type="file" id="file2" accept="image/*">
+      </div>
+    </div>
+
+    <!-- Layout Presets -->
+    <div class="section">
+      <div class="section-title">Layout Presets</div>
+      <div class="preset-grid">
+        <button class="preset-btn active" onclick="applyPreset('overlap-angle')">重なり斜め</button>
+        <button class="preset-btn" onclick="applyPreset('side-by-side')">横並び</button>
+        <button class="preset-btn" onclick="applyPreset('stacked')">前後重ね</button>
+        <button class="preset-btn" onclick="applyPreset('fan')">ファン配置</button>
+      </div>
+    </div>
+
+    <!-- Device -->
+    <div class="section">
+      <div class="section-title">Device</div>
+      <div class="control-group">
+        <label>Model</label>
+        <select id="deviceModel" onchange="render()">
+          <option value="iphone15pro">iPhone 15 Pro</option>
+          <option value="iphone15">iPhone 15</option>
+          <option value="iphone14">iPhone 14</option>
+          <option value="iphoneSE">iPhone SE</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Frame Color</label>
+        <select id="frameColor" onchange="render()">
+          <option value="#1a1a1a">Black Titanium</option>
+          <option value="#3b3b3d">Natural Titanium</option>
+          <option value="#f5f5f0">White Titanium</option>
+          <option value="#414456">Blue Titanium</option>
+          <option value="#c0b5a1">Gold</option>
+          <option value="#e3d0bf">Rose Gold</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Device 1 Transform -->
+    <div class="section">
+      <div class="section-title">Device 1</div>
+      <div class="control-group">
+        <label>Rotation</label>
+        <div class="control-row">
+          <input type="range" id="d1Rotate" min="-45" max="45" value="-8" oninput="render(); updateVal(this)">
+          <span class="value" id="d1RotateVal">-8°</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>X Offset</label>
+        <div class="control-row">
+          <input type="range" id="d1X" min="-400" max="400" value="-80" oninput="render(); updateVal(this)">
+          <span class="value" id="d1XVal">-80</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Y Offset</label>
+        <div class="control-row">
+          <input type="range" id="d1Y" min="-400" max="400" value="20" oninput="render(); updateVal(this)">
+          <span class="value" id="d1YVal">20</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Scale</label>
+        <div class="control-row">
+          <input type="range" id="d1Scale" min="30" max="150" value="85" oninput="render(); updateVal(this)">
+          <span class="value" id="d1ScaleVal">85%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Device 2 Transform -->
+    <div class="section">
+      <div class="section-title">Device 2</div>
+      <div class="control-group">
+        <label>Rotation</label>
+        <div class="control-row">
+          <input type="range" id="d2Rotate" min="-45" max="45" value="5" oninput="render(); updateVal(this)">
+          <span class="value" id="d2RotateVal">5°</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>X Offset</label>
+        <div class="control-row">
+          <input type="range" id="d2X" min="-400" max="400" value="80" oninput="render(); updateVal(this)">
+          <span class="value" id="d2XVal">80</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Y Offset</label>
+        <div class="control-row">
+          <input type="range" id="d2Y" min="-400" max="400" value="-20" oninput="render(); updateVal(this)">
+          <span class="value" id="d2YVal">-20</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Scale</label>
+        <div class="control-row">
+          <input type="range" id="d2Scale" min="30" max="150" value="85" oninput="render(); updateVal(this)">
+          <span class="value" id="d2ScaleVal">85%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Background -->
+    <div class="section">
+      <div class="section-title">Background</div>
+      <div class="control-group">
+        <label>Color</label>
+        <input type="color" id="bgColor" value="#000000" onchange="render()">
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="bgTransparent" onchange="render()">
+        <label for="bgTransparent">Transparent background</label>
+      </div>
+    </div>
+
+    <!-- Shadow -->
+    <div class="section">
+      <div class="section-title">Shadow</div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="showShadow" checked onchange="render()">
+        <label for="showShadow">Show shadow</label>
+      </div>
+      <div class="control-group">
+        <label>Blur</label>
+        <div class="control-row">
+          <input type="range" id="shadowBlur" min="0" max="80" value="40" oninput="render(); updateVal(this)">
+          <span class="value" id="shadowBlurVal">40</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Opacity</label>
+        <div class="control-row">
+          <input type="range" id="shadowOpacity" min="0" max="100" value="50" oninput="render(); updateVal(this)">
+          <span class="value" id="shadowOpacityVal">50%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas Size -->
+    <div class="section">
+      <div class="section-title">Canvas Size</div>
+      <div class="control-group">
+        <select id="canvasSize" onchange="updateCanvasSize(); render()">
+          <option value="1920x1080">1920 x 1080 (16:9)</option>
+          <option value="1200x630">1200 x 630 (OGP)</option>
+          <option value="1080x1080">1080 x 1080 (Square)</option>
+          <option value="1080x1920">1080 x 1920 (Story)</option>
+          <option value="2560x1440">2560 x 1440 (Presentation)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="section">
+      <button class="btn btn-primary" onclick="exportPNG()">Export PNG</button>
+      <button class="btn btn-secondary" onclick="exportPNG(2)">Export @2x PNG</button>
+    </div>
+  </div>
+
+  <div class="canvas-area">
+    <div>
+      <div class="canvas-wrapper">
+        <canvas id="canvas" width="1920" height="1080"></canvas>
+      </div>
+      <div class="size-info" id="sizeInfo">1920 x 1080</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ───
+let img1 = null, img2 = null;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Device specs (screen area ratios within the frame)
+const devices = {
+  iphone15pro: { w: 393, h: 852, radius: 55, bezel: 12, notch: 'dynamicIsland', screenRadius: 45 },
+  iphone15:   { w: 393, h: 852, radius: 55, bezel: 12, notch: 'dynamicIsland', screenRadius: 45 },
+  iphone14:   { w: 390, h: 844, radius: 50, bezel: 12, notch: 'notch', screenRadius: 42 },
+  iphoneSE:   { w: 375, h: 667, radius: 20, bezel: 14, notch: 'none', screenRadius: 6 },
+};
+
+// ─── File handling ───
+function setupDropZone(zoneId, fileId, slot) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(fileId);
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0], slot, zone);
+  });
+  input.addEventListener('change', e => {
+    if (e.target.files[0]) loadImage(e.target.files[0], slot, zone);
+  });
+}
+
+function loadImage(file, slot, zone) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      if (slot === 1) img1 = img;
+      else img2 = img;
+      zone.classList.add('has-image');
+      zone.innerHTML = `<img class="preview" src="${e.target.result}"><input type="file" id="file${slot}" accept="image/*" style="display:none">`;
+      zone.onclick = () => document.getElementById(`file${slot}`).click();
+      setupDropZone(`dropZone${slot}`, `file${slot}`, slot);
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+setupDropZone('dropZone1', 'file1', 1);
+setupDropZone('dropZone2', 'file2', 2);
+
+// ─── Drawing ───
+function drawDevice(screenshot, config) {
+  const { x, y, rotation, scale, frameColor } = config;
+  const model = devices[document.getElementById('deviceModel').value];
+
+  // Physical frame dimensions (in canvas px)
+  const frameW = model.w * scale;
+  const frameH = model.h * scale;
+  const bezel = model.bezel * scale;
+  const radius = model.radius * scale;
+  const screenRadius = model.screenRadius * scale;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation * Math.PI / 180);
+
+  // Shadow
+  if (document.getElementById('showShadow').checked) {
+    const blur = parseInt(document.getElementById('shadowBlur').value);
+    const opacity = parseInt(document.getElementById('shadowOpacity').value) / 100;
+    ctx.shadowColor = `rgba(0, 0, 0, ${opacity})`;
+    ctx.shadowBlur = blur;
+    ctx.shadowOffsetX = 4;
+    ctx.shadowOffsetY = 8;
+  }
+
+  // Frame (outer body)
+  const totalW = frameW + bezel * 2;
+  const totalH = frameH + bezel * 2;
+  roundRect(ctx, -totalW / 2, -totalH / 2, totalW, totalH, radius);
+  ctx.fillStyle = frameColor;
+  ctx.fill();
+
+  // Reset shadow for screen
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+
+  // Side buttons (power + volume)
+  ctx.fillStyle = shadeColor(frameColor, -20);
+  // Power button (right side)
+  roundRect(ctx, totalW / 2 - 1, -totalH / 2 + totalH * 0.28, 3, totalH * 0.08, 1);
+  ctx.fill();
+  // Volume up (left side)
+  roundRect(ctx, -totalW / 2 - 2, -totalH / 2 + totalH * 0.22, 3, totalH * 0.05, 1);
+  ctx.fill();
+  // Volume down (left side)
+  roundRect(ctx, -totalW / 2 - 2, -totalH / 2 + totalH * 0.30, 3, totalH * 0.05, 1);
+  ctx.fill();
+
+  // Screen area
+  ctx.save();
+  roundRect(ctx, -frameW / 2, -frameH / 2, frameW, frameH, screenRadius);
+  ctx.clip();
+
+  if (screenshot) {
+    // Fill screen with screenshot (cover)
+    const imgRatio = screenshot.width / screenshot.height;
+    const screenRatio = frameW / frameH;
+    let drawW, drawH, drawX, drawY;
+    if (imgRatio > screenRatio) {
+      drawH = frameH;
+      drawW = drawH * imgRatio;
+      drawX = -frameW / 2 - (drawW - frameW) / 2;
+      drawY = -frameH / 2;
+    } else {
+      drawW = frameW;
+      drawH = drawW / imgRatio;
+      drawX = -frameW / 2;
+      drawY = -frameH / 2 - (drawH - frameH) / 2;
+    }
+    ctx.drawImage(screenshot, drawX, drawY, drawW, drawH);
+  } else {
+    // Empty screen
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-frameW / 2, -frameH / 2, frameW, frameH);
+    // Placeholder text
+    ctx.fillStyle = '#333';
+    ctx.font = `${14 * scale}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Drop screenshot', 0, 0);
+  }
+
+  // Dynamic Island / Notch overlay
+  if (model.notch === 'dynamicIsland') {
+    const diW = 126 * scale;
+    const diH = 37 * scale;
+    const diY = -frameH / 2 + 12 * scale;
+    roundRect(ctx, -diW / 2, diY, diW, diH, diH / 2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+  } else if (model.notch === 'notch') {
+    const nW = 160 * scale;
+    const nH = 34 * scale;
+    ctx.beginPath();
+    ctx.moveTo(-nW / 2 - 8 * scale, -frameH / 2);
+    ctx.quadraticCurveTo(-nW / 2, -frameH / 2, -nW / 2, -frameH / 2 + 8 * scale);
+    ctx.lineTo(-nW / 2, -frameH / 2 + nH - 8 * scale);
+    ctx.quadraticCurveTo(-nW / 2, -frameH / 2 + nH, -nW / 2 + 12 * scale, -frameH / 2 + nH);
+    ctx.lineTo(nW / 2 - 12 * scale, -frameH / 2 + nH);
+    ctx.quadraticCurveTo(nW / 2, -frameH / 2 + nH, nW / 2, -frameH / 2 + nH - 8 * scale);
+    ctx.lineTo(nW / 2, -frameH / 2 + 8 * scale);
+    ctx.quadraticCurveTo(nW / 2, -frameH / 2, nW / 2 + 8 * scale, -frameH / 2);
+    ctx.closePath();
+    ctx.fillStyle = '#000';
+    ctx.fill();
+  }
+
+  ctx.restore();
+
+  // Screen bezel highlight (subtle inner edge)
+  roundRect(ctx, -frameW / 2, -frameH / 2, frameW, frameH, screenRadius);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Frame edge highlight
+  roundRect(ctx, -totalW / 2, -totalH / 2, totalW, totalH, radius);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function render() {
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // Background
+  if (document.getElementById('bgTransparent').checked) {
+    ctx.clearRect(0, 0, w, h);
+  } else {
+    ctx.fillStyle = document.getElementById('bgColor').value;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  const frameColor = document.getElementById('frameColor').value;
+  const centerX = w / 2;
+  const centerY = h / 2;
+
+  const d1 = {
+    x: centerX + parseInt(document.getElementById('d1X').value),
+    y: centerY + parseInt(document.getElementById('d1Y').value),
+    rotation: parseInt(document.getElementById('d1Rotate').value),
+    scale: parseInt(document.getElementById('d1Scale').value) / 100,
+    frameColor
+  };
+
+  const d2 = {
+    x: centerX + parseInt(document.getElementById('d2X').value),
+    y: centerY + parseInt(document.getElementById('d2Y').value),
+    rotation: parseInt(document.getElementById('d2Rotate').value),
+    scale: parseInt(document.getElementById('d2Scale').value) / 100,
+    frameColor
+  };
+
+  // Draw back device first (device 1), then front (device 2)
+  if (img1 || !img2) drawDevice(img1, d1);
+  if (img2 || img1) drawDevice(img2, d2);
+  if (!img1 && !img2) {
+    drawDevice(null, d1);
+    drawDevice(null, d2);
+  }
+
+  // Fit canvas display to container
+  fitCanvas();
+}
+
+// ─── Utilities ───
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function shadeColor(color, percent) {
+  let R = parseInt(color.substring(1, 3), 16);
+  let G = parseInt(color.substring(3, 5), 16);
+  let B = parseInt(color.substring(5, 7), 16);
+  R = Math.min(255, Math.max(0, R + Math.round(R * percent / 100)));
+  G = Math.min(255, Math.max(0, G + Math.round(G * percent / 100)));
+  B = Math.min(255, Math.max(0, B + Math.round(B * percent / 100)));
+  return `#${(R << 16 | G << 8 | B).toString(16).padStart(6, '0')}`;
+}
+
+function updateVal(el) {
+  const valEl = document.getElementById(el.id + 'Val');
+  if (!valEl) return;
+  let v = el.value;
+  if (el.id.includes('Rotate')) v += '°';
+  else if (el.id.includes('Scale') || el.id.includes('Opacity')) v += '%';
+  valEl.textContent = v;
+}
+
+function fitCanvas() {
+  const area = document.querySelector('.canvas-area');
+  const maxW = area.clientWidth - 80;
+  const maxH = area.clientHeight - 80;
+  const scale = Math.min(maxW / canvas.width, maxH / canvas.height, 1);
+  canvas.style.width = canvas.width * scale + 'px';
+  canvas.style.height = canvas.height * scale + 'px';
+}
+
+function updateCanvasSize() {
+  const [w, h] = document.getElementById('canvasSize').value.split('x').map(Number);
+  canvas.width = w;
+  canvas.height = h;
+  document.getElementById('sizeInfo').textContent = `${w} x ${h}`;
+}
+
+// ─── Presets ───
+function applyPreset(name) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const presets = {
+    'overlap-angle': { d1: { r: -8, x: -80, y: 20, s: 85 }, d2: { r: 5, x: 80, y: -20, s: 85 } },
+    'side-by-side':  { d1: { r: 0, x: -140, y: 0, s: 75 }, d2: { r: 0, x: 140, y: 0, s: 75 } },
+    'stacked':       { d1: { r: -12, x: -60, y: 30, s: 80 }, d2: { r: 8, x: 60, y: -10, s: 85 } },
+    'fan':           { d1: { r: -15, x: -100, y: 40, s: 78 }, d2: { r: 10, x: 90, y: -30, s: 82 } },
+  };
+
+  const p = presets[name];
+  if (!p) return;
+
+  setSlider('d1Rotate', p.d1.r);
+  setSlider('d1X', p.d1.x);
+  setSlider('d1Y', p.d1.y);
+  setSlider('d1Scale', p.d1.s);
+  setSlider('d2Rotate', p.d2.r);
+  setSlider('d2X', p.d2.x);
+  setSlider('d2Y', p.d2.y);
+  setSlider('d2Scale', p.d2.s);
+
+  render();
+}
+
+function setSlider(id, val) {
+  const el = document.getElementById(id);
+  el.value = val;
+  updateVal(el);
+}
+
+// ─── Export ───
+function exportPNG(multiplier = 1) {
+  if (multiplier > 1) {
+    // Render at higher resolution
+    const origW = canvas.width;
+    const origH = canvas.height;
+    canvas.width = origW * multiplier;
+    canvas.height = origH * multiplier;
+    ctx.scale(multiplier, multiplier);
+    render();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    const link = document.createElement('a');
+    link.download = `mockup-${origW * multiplier}x${origH * multiplier}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    canvas.width = origW;
+    canvas.height = origH;
+    render();
+  } else {
+    const link = document.createElement('a');
+    link.download = `mockup-${canvas.width}x${canvas.height}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+}
+
+// ─── Init ───
+window.addEventListener('resize', fitCanvas);
+render();
+
+// Init all value displays
+document.querySelectorAll('input[type="range"]').forEach(el => updateVal(el));
+</script>
+
+</body>
+</html>
